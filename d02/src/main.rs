@@ -209,18 +209,22 @@ fn read_program_from_file() -> std::io::Result<Vec<MemCell>> {
 fn main() -> std::io::Result<()> {
     let prog = read_program_from_file()?;
 
+    let eval = |noun, verb| {
+        let mut iss = IntcodeISS::new();
+        iss.load_program(&prog);
+        iss.poke(1, noun);
+        iss.poke(2, verb);
+        iss.compute();
+        iss.peek(0)
+    };
+
     // --- Part One ---
-    let mut iss = IntcodeISS::new();
-    iss.load_program(&prog);
     // ... before running the program, replace position 1 with the value 12 and replace position 2
     // with the value 2.
-    iss.poke(1, 12);
-    iss.poke(2, 2);
-    iss.compute();
-
+    let result = eval(12, 2);
     println!(
         "Part One: Computer says result is {} for input noun=12 verb=2",
-        iss.peek(0)
+        result
     );
 
     // --- Part Two ---
@@ -228,12 +232,7 @@ fn main() -> std::io::Result<()> {
     // just simply brute force expected_result
     for noun in 0..=99 {
         for verb in 0..=99 {
-            let mut iss = IntcodeISS::new();
-            iss.load_program(&prog);
-            iss.poke(1, noun);
-            iss.poke(2, verb);
-            iss.compute();
-            if iss.peek(0) == expected_result {
+            if eval(noun, verb) == expected_result {
                 println!(
                     "Part Two: found expected_result={} for noun={} verb={}",
                     expected_result, noun, verb
