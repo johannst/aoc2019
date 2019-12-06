@@ -1,0 +1,7 @@
+language: rust
+jobs:
+  include:
+    - stage: build
+      script: cargo build --verbose --bins
+    - stage: test
+      script: cargo test --verbose --bins
