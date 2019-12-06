@@ -1,4 +1,5 @@
-## [Advent of Code 2019](https://adventofcode.com/2019)
+## [Advent of Code 2019](https://adventofcode.com/2019) [![Build Status](https://travis-ci.org/johannst/aoc2019.svg?branch=master)](https://travis-ci.org/johannst/aoc2019)
+
 
 ```
  ____ ____ ____ _________ ____ ____ ____ ____
