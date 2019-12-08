@@ -10,3 +10,15 @@
 
 For fun and profit!
 
+Project overview and instructions:
+```
+cargo run
+
+```
+
+For maximal profit:
+```
+cargo run | lolcat -a
+
+```
+
