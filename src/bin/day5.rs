@@ -1,11 +1,9 @@
 type Addr = u32;
 type Value = i32;
 
-struct IntcodeISS<'a> {
+struct IntcodeISS {
     mem: Vec<Value>,
     pc: Addr,
-    input: std::slice::Iter<'a, Value>,
-    output: Vec<Value>,
 }
 
 enum Instruction {
@@ -13,25 +11,19 @@ enum Instruction {
     Mul(Addr, Value, Value),
     Get(Addr),
     Put(Value),
-    JumpIfTrue(Value, Addr),
-    JumpIfFalse(Value, Addr),
+    Jpt(Value, Addr),
+    Jpf(Value, Addr),
     Lt(Addr, Value, Value),
     Eq(Addr, Value, Value),
     Halt,
 }
 
-impl<'a> IntcodeISS<'_> {
-    fn new(mem: &Vec<Value>, input: std::slice::Iter<'a, Value>) -> IntcodeISS<'a> {
+impl IntcodeISS {
+    fn new(mem: &Vec<Value>) -> IntcodeISS {
         IntcodeISS {
             mem: mem.to_owned(),
             pc: 0,
-            input: input,
-            output: Vec::new(),
         }
-    }
-
-    fn get_output(&self) -> Vec<Value> {
-        self.output.to_owned()
     }
 
     fn peek(&self, i: Addr) -> Value {
@@ -55,24 +47,24 @@ impl<'a> IntcodeISS<'_> {
         // Parameters that an instruction writes to will never be in immediate mode.
         assert_eq!(md, 0);
 
-        let r1 = || self.peek(self.pc + 1) as Addr;
-        let r2 = || self.peek(self.pc + 2) as Addr;
-        let rd = || self.peek(self.pc + 3) as Addr;
+        let r1 = || self.peek(self.pc + 1);
+        let r2 = || self.peek(self.pc + 2);
+        let rd = || self.peek(self.pc + 3);
         let fetch = |addressing_mode, val| match addressing_mode {
-            0 => self.peek(val),
-            1 => val as Value,
+            0 => self.peek(val as Addr),
+            1 => val,
             _ => unimplemented!(),
         };
 
         match opcode {
-            1 => Instruction::Add(rd(), fetch(m1, r1()), fetch(m2, r2())),
-            2 => Instruction::Mul(rd(), fetch(m1, r1()), fetch(m2, r2())),
-            3 => Instruction::Get(r1()),
+            1 => Instruction::Add(rd() as Addr, fetch(m1, r1()), fetch(m2, r2())),
+            2 => Instruction::Mul(rd() as Addr, fetch(m1, r1()), fetch(m2, r2())),
+            3 => Instruction::Get(r1() as Addr),
             4 => Instruction::Put(fetch(m1, r1())),
-            5 => Instruction::JumpIfTrue(fetch(m1, r1()), fetch(m2, r2()) as Addr),
-            6 => Instruction::JumpIfFalse(fetch(m1, r1()), fetch(m2, r2()) as Addr),
-            7 => Instruction::Lt(rd(), fetch(m1, r1()), fetch(m2, r2())),
-            8 => Instruction::Eq(rd(), fetch(m1, r1()), fetch(m2, r2())),
+            5 => Instruction::Jpt(fetch(m1, r1()), fetch(m2, r2()) as Addr),
+            6 => Instruction::Jpf(fetch(m1, r1()), fetch(m2, r2()) as Addr),
+            7 => Instruction::Lt(rd() as Addr, fetch(m1, r1()), fetch(m2, r2())),
+            8 => Instruction::Eq(rd() as Addr, fetch(m1, r1()), fetch(m2, r2())),
             99 => Instruction::Halt,
             op @ _ => {
                 dbg!(op);
@@ -81,13 +73,14 @@ impl<'a> IntcodeISS<'_> {
         }
     }
 
-    fn compute(&mut self) {
+    fn compute(&mut self, mut input: std::slice::Iter<'_, Value>) -> Vec<Value> {
         enum IssOp {
             Step(Addr),
             Jump(Addr),
             Halt,
         }
 
+        let mut output = Vec::new();
         loop {
             let iss_op = match self.decode(self.pc) {
                 Instruction::Add(d, op1, op2) => {
@@ -99,26 +92,25 @@ impl<'a> IntcodeISS<'_> {
                     IssOp::Step(4)
                 }
                 Instruction::Get(d) => {
-                    let i = *self
-                        .input
+                    let i = *input
                         .next()
                         .expect("Input stream consumed, machine still hungry!");
                     self.poke(d, i);
                     IssOp::Step(2)
                 }
                 Instruction::Put(op1) => {
-                    self.output.push(op1);
+                    output.push(op1);
                     println!("Intcode put: {}", op1);
                     IssOp::Step(2)
                 }
-                Instruction::JumpIfTrue(op1, d) => {
+                Instruction::Jpt(op1, d) => {
                     if op1 != 0 {
                         IssOp::Jump(d)
                     } else {
                         IssOp::Step(3)
                     }
                 }
-                Instruction::JumpIfFalse(op1, d) => {
+                Instruction::Jpf(op1, d) => {
                     if op1 == 0 {
                         IssOp::Jump(d)
                     } else {
@@ -142,6 +134,8 @@ impl<'a> IntcodeISS<'_> {
                 IssOp::Halt => break,
             }
         }
+
+        output
     }
 }
 
@@ -169,14 +163,14 @@ fn main() -> std::io::Result<()> {
     // --- Part One ---
     println!("Part One:");
     let input = vec![1]; // 1 = ID for air conditioner
-    let mut iss = IntcodeISS::new(&prog, input.iter());
-    iss.compute();
+    let mut iss = IntcodeISS::new(&prog);
+    iss.compute(input.iter());
 
     // --- Part Two ---
     println!("Part Two:");
     let input = vec![5]; // 5 = ID for ship's thermal radiator controller
-    let mut iss = IntcodeISS::new(&prog, input.iter());
-    iss.compute();
+    let mut iss = IntcodeISS::new(&prog);
+    iss.compute(input.iter());
 
     Ok(())
 }
@@ -187,15 +181,14 @@ mod test {
 
     fn eval(p: &Vec<Value>, result_pos: Addr) -> Value {
         let input = vec![];
-        let mut iss = IntcodeISS::new(p, input.iter());
-        iss.compute();
+        let mut iss = IntcodeISS::new(p);
+        iss.compute(input.iter());
         iss.peek(result_pos)
     }
 
     fn eval_with_io(p: &Vec<Value>, input: Vec<Value>) -> Vec<Value> {
-        let mut iss = IntcodeISS::new(p, input.iter());
-        iss.compute();
-        iss.get_output()
+        let mut iss = IntcodeISS::new(p);
+        iss.compute(input.iter())
     }
 
     #[test]
