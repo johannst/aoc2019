@@ -1,6 +1,5 @@
 ## [Advent of Code 2019](https://adventofcode.com/2019) [![Build Status](https://travis-ci.org/johannst/aoc2019.svg?branch=master)](https://travis-ci.org/johannst/aoc2019)
 
-
 ```
  ____ ____ ____ _________ ____ ____ ____ ____
 ||A |||o |||C |||       |||2 |||0 |||1 |||9 ||
@@ -10,15 +9,11 @@
 
 For fun and profit!
 
-Project overview and instructions:
-```
+```zsh
+# Project overview and instructions
 cargo run
 
-```
-
-For maximal profit:
-```
+# Maximize profit
 cargo run | lolcat -a
-
 ```
 
