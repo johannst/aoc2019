@@ -5,4 +5,8 @@ authors = ["johannst <johannes.stoelp@gmail.com>"]
 edition = "2018"
 default-run = "aoc2019"
 
+[lib]
+name = "aoc19"
+path = "src/lib.rs"
+
 [dependencies]
