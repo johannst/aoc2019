@@ -9,6 +9,9 @@ pub struct Error<T: fmt::Debug> {
 }
 
 impl<T: fmt::Debug> Error<T> {
+    pub fn new(err: T) -> Self {
+        Error { err }
+    }
     pub fn boxed(err: T) -> Box<Self> {
         Box::new(Error { err })
     }
